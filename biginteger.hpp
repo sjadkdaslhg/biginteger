@@ -222,6 +222,8 @@ inline void ordinaryMultiplyToLeft(std::vector<uint32_t>& left, const std::vecto
         }
         result[i + left.size()] += carry;
     }
+    while (!result.empty() && result.back() == 0)
+        result.pop_back();
     left = std::move(result);
 }
 
