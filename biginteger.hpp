@@ -31,6 +31,15 @@ class BigInteger {
      */
     std::vector<uint32_t> num;
 
+
+    /**
+     * 私有构造函数
+     * 直接构造 num 数组和符号位
+     * @param num num 数组
+     * @param sign 符号位
+     */
+    BigInteger(std::vector<uint32_t> num, int sign);
+
 public:
     /**
      * 字符串构造函数
@@ -79,7 +88,33 @@ public:
     friend bool operator==(const BigInteger& left, const BigInteger& right);
 
     friend bool operator<(const BigInteger& left, const BigInteger& right);
+
+
+    /**
+     * 辅助函数
+     * 将 BigInteger 左移 pos 位
+     * 等价于乘以 2^32 * pos
+     * @param obj 需要左移的 BigInteger 对象的引用
+     * @param pos 左移的位数
+     */
+    friend void shiftLeft(BigInteger& obj, size_t pos);
+
+
+    /**
+     * 辅助函数
+     * 使用 Karatsuba 算法计算两个 BigInteger 的乘积
+     * left 会被修改
+     * @param left 左操作数
+     * @param right 右操作数
+     */
+    friend void karatsubaMultiplyToLeft(BigInteger& left, const BigInteger& right);
 };
+
+
+inline BigInteger::BigInteger(std::vector<uint32_t> num, const int sign) {
+    this->num = std::move(num);
+    this->sign = sign;
+}
 
 
 inline BigInteger::BigInteger(const std::string& val) {
@@ -213,9 +248,9 @@ inline void addToLeft(std::vector<uint32_t>& left, const std::vector<uint32_t>& 
  */
 inline void ordinaryMultiplyToLeft(std::vector<uint32_t>& left, const std::vector<uint32_t>& right) {
     std::vector<uint32_t> result(left.size() + right.size(), 0);
-    for (size_t i = 0; i < right.size(); i++) {
+    for (size_t i = 0; i < right.size(); ++i) {
         uint64_t carry = 0;
-        for (size_t j = 0; j < left.size(); j++) {
+        for (size_t j = 0; j < left.size(); ++j) {
             const uint64_t temp = static_cast<uint64_t>(left[j]) * static_cast<uint64_t>(right[i]) + carry + static_cast<uint64_t>(result[i + j]);
             result[i + j] = static_cast<uint32_t>(temp);
             carry = temp >> 32;
@@ -342,7 +377,10 @@ inline BigInteger& BigInteger::operator*=(const BigInteger& right) {
         sign = 0;
         return *this;
     }
-    ordinaryMultiplyToLeft(num, right.num);
+    if (num.size() < 100 && right.num.size() < 100)
+        ordinaryMultiplyToLeft(num, right.num);
+    else
+        karatsubaMultiplyToLeft(*this, right);
     sign = sign * right.sign;
     return *this;
 }
@@ -432,4 +470,43 @@ inline bool operator<=(const BigInteger& left, const BigInteger& right) {
 }
 inline bool operator>=(const BigInteger& left, const BigInteger& right) {
     return !(left < right);
+}
+
+
+inline void shiftLeft(BigInteger& obj, const size_t pos) {
+    std::vector<uint32_t> result(obj.num.size() + pos);
+    for (size_t i = 0; i < obj.num.size(); ++i)
+        result[i + pos] = obj.num[i];
+    obj.num = result;
+}
+
+
+inline void karatsubaMultiplyToLeft(BigInteger& left, const BigInteger& right) {
+    const size_t half = (std::max(left.num.size(), right.num.size()) + 1) / 2;
+    // 构造四个 BigInteger
+    std::vector<uint32_t> left_lower_arr(half);
+    for (size_t i = 0; i < half; ++i)
+        left_lower_arr[i] = left.num[i];
+    std::vector<uint32_t> right_lower_arr(half);
+    for (size_t i = 0; i < half; ++i)
+        right_lower_arr[i] = right.num[i];
+    std::vector<uint32_t> left_upper_arr(left.num.size() - half);
+    for (size_t i = half; i < left.num.size(); ++i)
+        left_upper_arr[i - half] = left.num[i];
+    std::vector<uint32_t> right_upper_arr(right.num.size() - half);
+    for (size_t i = half; i < right.num.size(); ++i)
+        right_upper_arr[i - half] = right.num[i];
+    BigInteger left_lower{left_lower_arr, left.sign};
+    BigInteger left_upper{left_upper_arr, left.sign};
+    const BigInteger right_lower{right_lower_arr, right.sign};
+    const BigInteger right_upper{right_upper_arr, right.sign};
+
+    const BigInteger temp = (left_lower + left_upper) * (right_lower + right_upper);
+    left_lower *= right_lower;
+    left_upper *= right_upper;
+    BigInteger mid = temp - left_lower - left_upper;
+    shiftLeft(left_upper, half);
+    shiftLeft(mid, half);
+    const BigInteger result = left_upper + mid + left_lower;
+    left.num = result.num;
 }
