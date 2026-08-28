@@ -94,7 +94,7 @@ public:
     /**
      * 辅助函数
      * 将 BigInteger 左移 pos 位
-     * 等价于乘以 2^32 * pos
+     * 等价于乘以 2^(32 * pos)
      * @param obj 需要左移的 BigInteger 对象的引用
      * @param pos 左移的位数
      */
