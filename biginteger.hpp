@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <ostream>
 #include <utility>
+#include <algorithm>
 
 
 /**
@@ -114,6 +115,10 @@ public:
 inline BigInteger::BigInteger(std::vector<uint32_t> num, const int sign) {
     this->num = std::move(num);
     this->sign = sign;
+    while (!this->num.empty() && this->num.back() == 0)
+        this->num.pop_back();
+    if (this->num.empty())
+        this->sign = 0;
 }
 
 
@@ -484,18 +489,20 @@ inline void shiftLeft(BigInteger& obj, const size_t pos) {
 inline void karatsubaMultiplyToLeft(BigInteger& left, const BigInteger& right) {
     const size_t half = (std::max(left.num.size(), right.num.size()) + 1) / 2;
     // 构造四个 BigInteger
-    std::vector<uint32_t> left_lower_arr(half);
-    for (size_t i = 0; i < half; ++i)
+    const size_t left_low_size = std::min(half, left.num.size());
+    const size_t right_low_size = std::min(half, right.num.size());
+    std::vector<uint32_t> left_lower_arr(left_low_size);
+    for (size_t i = 0; i < left_low_size; ++i)
         left_lower_arr[i] = left.num[i];
-    std::vector<uint32_t> right_lower_arr(half);
-    for (size_t i = 0; i < half; ++i)
+    std::vector<uint32_t> right_lower_arr(right_low_size);
+    for (size_t i = 0; i < right_low_size; ++i)
         right_lower_arr[i] = right.num[i];
-    std::vector<uint32_t> left_upper_arr(left.num.size() - half);
-    for (size_t i = half; i < left.num.size(); ++i)
-        left_upper_arr[i - half] = left.num[i];
-    std::vector<uint32_t> right_upper_arr(right.num.size() - half);
-    for (size_t i = half; i < right.num.size(); ++i)
-        right_upper_arr[i - half] = right.num[i];
+    std::vector<uint32_t> left_upper_arr(left.num.size() - left_low_size);
+    for (size_t i = left_low_size; i < left.num.size(); ++i)
+        left_upper_arr[i - left_low_size] = left.num[i];
+    std::vector<uint32_t> right_upper_arr(right.num.size() - right_low_size);
+    for (size_t i = right_low_size; i < right.num.size(); ++i)
+        right_upper_arr[i - right_low_size] = right.num[i];
     BigInteger left_lower{left_lower_arr, left.sign};
     BigInteger left_upper{left_upper_arr, left.sign};
     const BigInteger right_lower{right_lower_arr, right.sign};
@@ -505,7 +512,7 @@ inline void karatsubaMultiplyToLeft(BigInteger& left, const BigInteger& right) {
     left_lower *= right_lower;
     left_upper *= right_upper;
     BigInteger mid = temp - left_lower - left_upper;
-    shiftLeft(left_upper, half);
+    shiftLeft(left_upper, 2 * half);
     shiftLeft(mid, half);
     const BigInteger result = left_upper + mid + left_lower;
     left.num = result.num;
