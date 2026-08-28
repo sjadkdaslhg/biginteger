@@ -61,6 +61,13 @@ public:
     BigInteger& operator-=(const BigInteger& right);
 
 
+    /**
+     * 重载 *= 运算符
+     * @param right 右操作数
+     * @return 调用 operator *= 对象的引用
+     */
+    BigInteger& operator*=(const BigInteger& right);
+
     // 拷贝构造函数
     BigInteger(const BigInteger& other);
 
@@ -199,6 +206,28 @@ inline void addToLeft(std::vector<uint32_t>& left, const std::vector<uint32_t>& 
 
 /**
  * 辅助函数
+ * 直接计算两个 num 数组的乘积
+ * left 的 num 数组会被修改
+ * @param left 左操作数的 num 数组
+ * @param right 右操作数的 num 数组
+ */
+inline void ordinaryMultiplyToLeft(std::vector<uint32_t>& left, const std::vector<uint32_t>& right) {
+    std::vector<uint32_t> result(left.size() + right.size(), 0);
+    for (size_t i = 0; i < right.size(); i++) {
+        uint64_t carry = 0;
+        for (size_t j = 0; j < left.size(); j++) {
+            const uint64_t temp = static_cast<uint64_t>(left[j]) * static_cast<uint64_t>(right[i]) + carry + static_cast<uint64_t>(result[i + j]);
+            result[i + j] = static_cast<uint32_t>(temp);
+            carry = temp >> 32;
+        }
+        result[i + left.size()] += carry;
+    }
+    left = std::move(result);
+}
+
+
+/**
+ * 辅助函数
  * 比较 left 和 right 的绝对值大小
  * @param left 左操作数的 num 数组
  * @param right 右操作数的 num 数组
@@ -305,15 +334,30 @@ inline BigInteger& BigInteger::operator-=(const BigInteger& right) {
 }
 
 
+inline BigInteger& BigInteger::operator*=(const BigInteger& right) {
+    if (sign == 0 || right.sign == 0) {
+        num.clear();
+        sign = 0;
+        return *this;
+    }
+    ordinaryMultiplyToLeft(num, right.num);
+    sign = sign * right.sign;
+    return *this;
+}
+
 
 inline BigInteger operator+(BigInteger left, const BigInteger& right) {
     left += right;
     return left;
 }
 
-
 inline BigInteger operator-(BigInteger left, const BigInteger& right) {
     left -= right;
+    return left;
+}
+
+inline BigInteger operator*(BigInteger left, const BigInteger& right) {
+    left *= right;
     return left;
 }
 
