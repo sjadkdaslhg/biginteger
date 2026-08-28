@@ -119,6 +119,8 @@ inline BigInteger::BigInteger(std::vector<uint32_t> num, const int sign) {
         this->num.pop_back();
     if (this->num.empty())
         this->sign = 0;
+    if (this->sign == 0)
+        this->num.clear();
 }
 
 
