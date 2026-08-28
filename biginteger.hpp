@@ -81,6 +81,8 @@ public:
     // 拷贝构造函数
     BigInteger(const BigInteger& other);
 
+    BigInteger(BigInteger&& other) noexcept;
+
     // 其他简单运算符重载
     BigInteger& operator=(const BigInteger& other);
 
@@ -241,7 +243,6 @@ inline void addToLeft(std::vector<uint32_t>& left, const std::vector<uint32_t>& 
     while (temp) {
         left.push_back(static_cast<uint32_t>(temp));
         temp >>= 32;
-        ++idx;
     }
 }
 
@@ -414,6 +415,11 @@ inline BigInteger::BigInteger(const BigInteger& other) {
     num = other.num;
 }
 
+inline BigInteger::BigInteger(BigInteger&& other) noexcept {
+    sign = other.sign;
+    num = std::move(num);
+}
+
 // 重载 = 运算符
 inline BigInteger& BigInteger::operator=(const BigInteger& other) {
     if (this == &other)
@@ -468,7 +474,7 @@ inline bool operator<(const BigInteger& left, const BigInteger& right) {
 }
 
 // 重载其他比较运算符
-// 都通过 operator<< 实现
+// 都通过 operator< 实现
 inline bool operator>(const BigInteger& left, const BigInteger& right) {
     return right < left;
 }
@@ -485,6 +491,8 @@ inline void shiftLeft(BigInteger& obj, const size_t pos) {
     for (size_t i = 0; i < obj.num.size(); ++i)
         result[i + pos] = obj.num[i];
     obj.num = result;
+    if (!obj.num.empty())
+        obj.sign = 1;
 }
 
 
@@ -516,6 +524,6 @@ inline void karatsubaMultiplyToLeft(BigInteger& left, const BigInteger& right) {
     BigInteger mid = temp - left_lower - left_upper;
     shiftLeft(left_upper, 2 * half);
     shiftLeft(mid, half);
-    const BigInteger result = left_upper + mid + left_lower;
-    left.num = result.num;
+    BigInteger result = left_upper + mid + left_lower;
+    left.num = std::move(result.num);
 }
