@@ -417,7 +417,7 @@ inline BigInteger::BigInteger(const BigInteger& other) {
 
 inline BigInteger::BigInteger(BigInteger&& other) noexcept {
     sign = other.sign;
-    num = std::move(num);
+    num = std::move(other.num);
 }
 
 // 重载 = 运算符
@@ -491,8 +491,8 @@ inline void shiftLeft(BigInteger& obj, const size_t pos) {
     for (size_t i = 0; i < obj.num.size(); ++i)
         result[i + pos] = obj.num[i];
     obj.num = result;
-    if (!obj.num.empty())
-        obj.sign = 1;
+    if (obj.sign == 0)
+        obj.num.clear();
 }
 
 
@@ -513,10 +513,10 @@ inline void karatsubaMultiplyToLeft(BigInteger& left, const BigInteger& right) {
     std::vector<uint32_t> right_upper_arr(right.num.size() - right_low_size);
     for (size_t i = right_low_size; i < right.num.size(); ++i)
         right_upper_arr[i - right_low_size] = right.num[i];
-    BigInteger left_lower{left_lower_arr, left.sign};
-    BigInteger left_upper{left_upper_arr, left.sign};
-    const BigInteger right_lower{right_lower_arr, right.sign};
-    const BigInteger right_upper{right_upper_arr, right.sign};
+    BigInteger left_lower{std::move(left_lower_arr), left.sign};
+    BigInteger left_upper{std::move(left_upper_arr), left.sign};
+    const BigInteger right_lower{std::move(right_lower_arr), right.sign};
+    const BigInteger right_upper{std::move(right_upper_arr), right.sign};
 
     const BigInteger temp = (left_lower + left_upper) * (right_lower + right_upper);
     left_lower *= right_lower;
