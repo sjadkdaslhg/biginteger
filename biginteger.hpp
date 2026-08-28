@@ -53,6 +53,13 @@ public:
      */
     BigInteger& operator+=(const BigInteger& right);
 
+    /**
+     * 重载 -= 运算符
+     * @param right 右操作数
+     * @return 调用 operator-= 对象的引用
+     */
+    BigInteger& operator-=(const BigInteger& right);
+
 
     // 拷贝构造函数
     BigInteger(const BigInteger& other);
@@ -235,12 +242,12 @@ inline BigInteger& BigInteger::operator+=(const BigInteger& right) {
     if (right.sign == 0)
         return *this;
     if (sign == 0) {
-        sign = right.sign;
         num = right.num;
+        sign = right.sign;
         return *this;
     }
     if (sign == right.sign) {
-        addToLeft(this->num, right.num);
+        addToLeft(num, right.num);
         return *this;
     }
 
@@ -248,8 +255,8 @@ inline BigInteger& BigInteger::operator+=(const BigInteger& right) {
     // 结果的符号由绝对值大小决定
     const int8_t cmp = compareNum(num, right.num);
     if (cmp == 0) {
-        sign = 0;
         num.clear();
+        sign = 0;
         return *this;
     }
     if (cmp > 0) {
@@ -259,16 +266,54 @@ inline BigInteger& BigInteger::operator+=(const BigInteger& right) {
 
     // this 的绝对值小于 right 的绝对值
     // 进行了数组复制
-    sign = right.sign;
     std::vector<uint32_t> result = right.num;
     subtractToLeft(result, num);
     num = result;
+    sign = right.sign;
     return *this;
 }
 
 
+inline BigInteger& BigInteger::operator-=(const BigInteger& right) {
+    // 与 operator+= 类似
+    if (right.sign == 0)
+        return *this;
+    if (sign == 0) {
+        num = right.num;
+        sign = -right.sign;
+        return *this;
+    }
+    if (sign != right.sign) {
+        addToLeft(num, right.num);
+        return *this;
+    }
+    const int8_t cmp = compareNum(num, right.num);
+    if (cmp == 0) {
+        num.clear();
+        sign = 0;
+        return *this;
+    }
+    if (cmp > 0) {
+        subtractToLeft(num, right.num);
+        return *this;
+    }
+    std::vector<uint32_t> result = right.num;
+    subtractToLeft(result, num);
+    num = result;
+    sign = -right.sign;
+    return *this;
+}
+
+
+
 inline BigInteger operator+(BigInteger left, const BigInteger& right) {
     left += right;
+    return left;
+}
+
+
+inline BigInteger operator-(BigInteger left, const BigInteger& right) {
+    left -= right;
     return left;
 }
 
